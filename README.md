@@ -1,9 +1,10 @@
-# first_project
-Match final goals and results prediction using match stats.
 
-### Match Predictor Documentation
-Overview
-This file provides an overview of the trained machine learning model used to predict football match results and number of goals scored. The models were built using scikit-learn and XGBoost.
+# Match Predictor Documentation
+## Overview
+
+This file provides an overview of the trained machine learning model used to predict football match results and number of goals scored.
+The models were built using scikit-learn and XGBoost.
+
 **Model Details**
 Type: XGBoost Classifier
 Training Dataset: Processed match data containing team stats, form,etc.
