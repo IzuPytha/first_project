@@ -63,6 +63,7 @@ reg_lambda : 0.5818292174394918
 The model is deployed using Streamlit, allowing users to input match details and receive a predicted outcome.
 
 **Running the Model in Streamlit**
+
 Ensure all dependencies are installed:
 ```pip install -r requirements.txt```.
 
