@@ -6,17 +6,30 @@ This file provides an overview of the trained machine learning model used to pre
 The models were built using scikit-learn and XGBoost.
 
 **Model Details**
+
 Type: XGBoost Classifier
+
 Training Dataset: Processed match data containing team stats, form,etc.
+
 Target Variable: Match outcome (Home Win, Draw, Away Win) and Home and Away goals scored.
+
 Feature Engineering: Categorical encoding, feature scaling,
+
 Hyperparameter Tuning: Used Hyperopt to optimize model performance.
-Features Used
+
+**Features Used**
+
 Team Information: Home team, Away team
+
 Recent Performance: Win/loss records, match stats
-Model Performance
-Evaluation Metrics: Accuracy, Root mean squared error(RMSE).
-Best Hyperparameters:For goal_predictions.pkl
+
+**Model Performance**
+
+*Evaluation Metrics*: Accuracy, Root mean squared error(RMSE).
+
+Best Hyperparameters:
+For goal_predictions.pkl
+
 colsample_bytree: 0.8278581623261667
 early_stopping_rounds : 80
 gamma : 3.108377905034552
