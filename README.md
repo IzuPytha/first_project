@@ -65,8 +65,10 @@ The model is deployed using Streamlit, allowing users to input match details and
 **Running the Model in Streamlit**
 Ensure all dependencies are installed:
 ```pip install -r requirements.txt```.
+
 Run the Streamlit application:
 ```streamlit run app.py```
+
 Upload match data or input team details manually.
 
 The model will generate and display the predicted match result.
