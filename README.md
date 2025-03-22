@@ -5,7 +5,7 @@
 This file provides an overview of the trained machine learning model used to predict football match results and number of goals scored.
 The models were built using scikit-learn and XGBoost.
 
-### Model Details
+## Model Details
 
 Type: XGBoost Classifier.
 
@@ -15,13 +15,13 @@ Target Variable: Match outcome (Home Win, Draw, Away Win) and Home and Away goal
 
 Hyperparameter Tuning: Used Hyperopt to optimize model performance.
 
-**Features Used**
+## Features Used
 
 Team Information: Home team, Away team.
 
 Recent Performance: Win/loss records, match stats.
 
-**Model Performance**
+## Model Performance
 
 *Evaluation Metrics*: Accuracy, Root mean squared error(RMSE).
 
@@ -59,7 +59,7 @@ reg_alpha : 53
 
 reg_lambda : 0.5818292174394918
 
-### Deployment
+## Deployment
 The model is deployed using Streamlit, allowing users to input match details and receive a predicted outcome.
 
 **Running the Model in Streamlit**
