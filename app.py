@@ -1,11 +1,9 @@
 import streamlit as st
 import joblib
 import pandas as pd
-import shap
 import numpy as np
 import matplotlib.pyplot as plt
 import xgboost as xgb
-import IPython
 # Load the trained model and encoder
 goal_model = joblib.load("goal_predictions.pkl")
 result_model = joblib.load("result_predictions.pkl")
