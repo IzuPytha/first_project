@@ -13,7 +13,7 @@ label_encoded_columns = ["HomeTeam", "AwayTeam"]
 # Streamlit UI
 st.title("⚽ Match Prediction Dashboard")
 st.write("Upload your CSV file and get predictions!")
-DEFAULT_CSV = "live.csv"  # Ensure this file is in the same directory as app.py
+DEFAULT_CSV = "liv.csv"  # Ensure this file is in the same directory as app.py
 
 
 st.write("View predictions with the default dataset or upload your own.")
