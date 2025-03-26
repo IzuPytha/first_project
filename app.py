@@ -76,8 +76,8 @@ match_data = pd.DataFrame({
     "Year": [2025]  # Default future year
 })
 
-
-dmatrix_match = xgb.DMatrix(match_data)
+match_data = match_data[model_features]
+dmatrix_match = xgb.DMatrix(match_data, feature_names=model_features)
 
 # Predict Goals
 goal_predictions = goal_model.predict(dmatrix_match)
