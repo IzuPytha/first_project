@@ -77,7 +77,7 @@ match_data = pd.DataFrame({
 })
 
 
-dmatrix_match = xgb.DMatrix(match_data, feature_names=model_features)
+dmatrix_match = xgb.DMatrix(match_data)
 
 # Predict Goals
 goal_predictions = goal_model.predict(dmatrix_match)
