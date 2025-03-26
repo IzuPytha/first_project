@@ -12,23 +12,12 @@ label_encoded_columns = ["HomeTeam", "AwayTeam"]
 
 # Streamlit UI
 st.title("⚽ Match Prediction Dashboard")
-st.write("Upload your CSV file and get predictions!")
-DEFAULT_CSV = "liv.csv"  # Ensure this file is in the same directory as app.py
+DEFAULT_CSV = "live.csv"  # Ensure this file is in the same directory as app.py
 
 
-st.write("View predictions with the default dataset or upload your own.")
+st.write("View predictions of English Premier League Football Matches")
 
-# File uploader (optional)
-uploaded_file = st.file_uploader("📂 Upload CSV file (optional)", type=["csv"])
-
-# Use the uploaded file if provided, otherwise use the default dataset
-if uploaded_file is not None:
-    data = pd.read_csv(uploaded_file)
-    st.success("✅ Using uploaded file.")
-else:
-    data = pd.read_csv(DEFAULT_CSV)
-    st.info("ℹ️ Using default dataset.")
-
+data = pd.read_csv(DEFAULT_CSV)
 # Display data preview
 st.write("### 📊 Preview of Data:")
 st.dataframe(data.head())
@@ -69,11 +58,45 @@ for col, encoder in label_encoder.items():
 
 
 
-# Show results
-st.write("### 🎯 Predictions:")
-st.dataframe(data)
+teams = sorted(label_encoders["HomeTeam"].classes_)  # Get team names from LabelEncoder
 
-# Download button for results
-csv = data.to_csv(index=False).encode("utf-8")
-st.download_button("⬇️ Download Predictions", csv, "predictions.csv", "text/csv")
+# Sidebar Inputs
+st.sidebar.header("🔍 Select Match Teams")
+home_team = st.sidebar.selectbox("🏠 Home Team", teams)
+away_team = st.sidebar.selectbox("✈️ Away Team", teams)
 
+# Convert selected teams into encoded values
+home_encoded = label_encoders["HomeTeam"].transform([home_team])[0]
+away_encoded = label_encoders["AwayTeam"].transform([away_team])[0]
+
+# Create a DataFrame for prediction
+match_data = pd.DataFrame({
+    "HomeTeam": [home_encoded],
+    "AwayTeam": [away_encoded],
+    "Year": [2025]  # Default future year
+})
+
+
+dmatrix_match = xgb.DMatrix(match_data, feature_names=model_features)
+
+# Predict Goals
+goal_predictions = goal_model.predict(dmatrix_match)
+fthg, ftag = int(goal_predictions[0][0]), int(goal_predictions[0][1])
+
+# Predict Result
+result_prediction = result_model.predict(dmatrix_match)[0]
+result_mapping = {0: "Home Win", 1: "Draw", 2: "Away Win"}
+predicted_result = result_mapping.get(result_prediction, "Unknown")
+
+# Predictions
+st.subheader("⚽ Predicted Match Outcome")
+st.write(f"🏠 **{home_team}** {fthg} - {ftag} **{away_team}** ✈️")
+st.write(f"📊 **Predicted Result:** {predicted_result}")
+
+# Goals
+fig, ax = plt.subplots()
+ax.bar(["Home Goals", "Away Goals"], [fthg, ftag], color=["blue", "red"])
+ax.set_title("⚽ Predicted Goals")
+ax.set_ylabel("Goals")
+
+st.pyplot(fig)
