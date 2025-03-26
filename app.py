@@ -58,7 +58,7 @@ for col, encoder in label_encoder.items():
 
 
 
-teams = sorted(label_encoders["HomeTeam"].classes_)  # Get team names from LabelEncoder
+teams = sorted(label_encoder["HomeTeam"].classes_)  # Get team names from LabelEncoder
 
 # Sidebar Inputs
 st.sidebar.header("🔍 Select Match Teams")
@@ -66,8 +66,8 @@ home_team = st.sidebar.selectbox("🏠 Home Team", teams)
 away_team = st.sidebar.selectbox("✈️ Away Team", teams)
 
 # Convert selected teams into encoded values
-home_encoded = label_encoders["HomeTeam"].transform([home_team])[0]
-away_encoded = label_encoders["AwayTeam"].transform([away_team])[0]
+home_encoded = label_encoder["HomeTeam"].transform([home_team])[0]
+away_encoded = label_encoder["AwayTeam"].transform([away_team])[0]
 
 # Create a DataFrame for prediction
 match_data = pd.DataFrame({
@@ -88,12 +88,24 @@ result_prediction = result_model.predict(dmatrix_match)[0]
 result_mapping = {0: "Home Win", 1: "Draw", 2: "Away Win"}
 predicted_result = result_mapping.get(result_prediction, "Unknown")
 
+
 # Predictions
 st.subheader("⚽ Predicted Match Outcome")
 st.write(f"🏠 **{home_team}** {fthg} - {ftag} **{away_team}** ✈️")
 st.write(f"📊 **Predicted Result:** {predicted_result}")
 
-# Goals
+st.sidebar.header("📊 Adjust Match Conditions")
+
+# Adjust home & away team strength
+home_advantage = st.sidebar.slider("🏠 Home Advantage (Boost Goals)", 0, 3, 0)
+away_advantage = st.sidebar.slider("✈️ Away Advantage (Boost Goals)", 0, 3, 0)
+
+# Update goal predictions
+adjusted_fthg = fthg + home_advantage
+adjusted_ftag = ftag + away_advantage
+st.sidebar.write(f"🔹 Adjusted Score: {home_team} {adjusted_fthg} - {adjusted_ftag} {away_team}")
+
+
 fig, ax = plt.subplots()
 ax.bar(["Home Goals", "Away Goals"], [fthg, ftag], color=["blue", "red"])
 ax.set_title("⚽ Predicted Goals")
