@@ -75,7 +75,9 @@ match_data = pd.DataFrame({
     "AwayTeam": [away_encoded],
     "Year": [2025]  # Default future year
 })
-
+for col in model_features:
+    if col not in match_data.columns:
+        match_data[col] = 0
 match_data = match_data[model_features]
 dmatrix_match = xgb.DMatrix(match_data, feature_names=model_features)
 
