@@ -1,3 +1,4 @@
+import requests
 import streamlit as st
 import joblib
 import pandas as pd
@@ -16,11 +17,58 @@ DEFAULT_CSV = "live.csv"  # Ensure this file is in the same directory as app.py
 
 
 st.write("View predictions of English Premier League Football Matches")
+API_KEY = "d8462708faa894faee68ffddf3ab31f2"
+API_URL = "https://api.football-data.org/v4/matches"
 
-data = pd.read_csv(DEFAULT_CSV)
-# Display data preview
-st.write("### 📊 Preview of Data:")
-st.dataframe(data.head())
+# Fetch live match data
+def get_live_matches():
+    headers = {"X-Auth-Token": API_KEY}
+    response = requests.get(API_URL, headers=headers)
+    
+    if response.status_code == 200:
+        matches = response.json().get("matches", [])
+        match_list = [
+            {"HomeTeam": match["homeTeam"]["name"], "AwayTeam": match["awayTeam"]["name"]}
+            for match in matches
+        ]
+        return match_list
+    else:
+        st.error("⚠️ Unable to fetch match data.")
+        return []
+
+# Fetch upcoming matches
+matches = get_live_matches()
+
+# Team selection from live data
+st.sidebar.header("🔍 Select a Live Match")
+if matches:
+    match_selection = st.sidebar.selectbox("Select Match", [f"{m['HomeTeam']} vs {m['AwayTeam']}" for m in matches])
+    home_team, away_team = match_selection.split(" vs ")
+else:
+    home_team, away_team = "Man City", "Arsenal"  # Default teams
+
+st.sidebar.write(f"🏠 **{home_team}** vs **{away_team}** ✈️")
+
+def get_team_stats(team_name):
+    team_url = f"https://api.football-data.org/v4/teams?name={team_name}"
+    headers = {"X-Auth-Token": API_KEY}
+    response = requests.get(team_url, headers=headers)
+    
+    if response.status_code == 200:
+        team_data = response.json().get("teams", [{}])[0]
+        return {
+            "Form": team_data.get("lastFiveResults", "WDLWW"),
+            "GoalsPerMatch": team_data.get("averageGoalsPerGame", 1.5)
+        }
+    return {"Form": "WDLDW", "GoalsPerMatch": 1.2}  # Default values
+
+home_stats = get_team_stats(home_team)
+away_stats = get_team_stats(away_team)
+
+st.sidebar.write(f"🏠 {home_team} Form: {home_stats['Form']} | Goals: {home_stats['GoalsPerMatch']}")
+st.sidebar.write(f"✈️ {away_team} Form: {away_stats['Form']} | Goals: {away_stats['GoalsPerMatch']}")
+
+
 
 # Identify categorical columns
 categorical_columns = data.select_dtypes(exclude=["number"]).columns.tolist()
@@ -46,71 +94,29 @@ dmatrix_data = xgb.DMatrix(data, feature_names=model_features)
 goal_predictions = goal_model.predict(dmatrix_data)
 result_predictions = result_model.predict(dmatrix_data)
 
-# Assign predictions
-data["Predicted_FTHG"] = goal_predictions[:, 0].round().astype(int)
-data["Predicted_FTAG"] = goal_predictions[:, 1].round().astype(int)
-data["Predicted_FTR"] = result_predictions  # Already classified
-
-for col, encoder in label_encoder.items():
-    if col in data.columns:
-        reverse_mapping = {index: label for index, label in enumerate(encoder.classes_)}
-        data[col] = data[col].map(reverse_mapping)
-
-
-
-teams = sorted(label_encoder["HomeTeam"].classes_)  # Get team names from LabelEncoder
-
-# Sidebar Inputs
-st.sidebar.header("🔍 Select Match Teams")
-home_team = st.sidebar.selectbox("🏠 Home Team", teams)
-away_team = st.sidebar.selectbox("✈️ Away Team", teams)
 
 # Convert selected teams into encoded values
 home_encoded = label_encoder["HomeTeam"].transform([home_team])[0]
 away_encoded = label_encoder["AwayTeam"].transform([away_team])[0]
 
-# Create a DataFrame for prediction
 match_data = pd.DataFrame({
     "HomeTeam": [home_encoded],
     "AwayTeam": [away_encoded],
-    "Year": [2025]  # Default future year
+    "HTFormPtsStr": [home_stats["Form"]],
+    "ATFormPtsStr": [away_stats["Form"]],
+    "Year": [2025]
 })
-for col in model_features:
-    if col not in match_data.columns:
-        match_data[col] = 0
-match_data = match_data[model_features]
-dmatrix_match = xgb.DMatrix(match_data, feature_names=model_features)
 
-# Predict Goals
+# Convert to DMatrix and predict
+dmatrix_match = xgb.DMatrix(match_data, feature_names=model_features)
 goal_predictions = goal_model.predict(dmatrix_match)
 fthg, ftag = int(goal_predictions[0][0]), int(goal_predictions[0][1])
 
-# Predict Result
-result_prediction = result_model.predict(dmatrix_match)[0]
+result_predictions = result_model.predict(dmatrix_match)[0]
 result_mapping = {0: "Home Win", 1: "Draw", 2: "Away Win"}
-predicted_result = result_mapping.get(result_prediction, "Unknown")
+predicted_result = result_mapping.get(result_predictions, "Unknown")
 
-
-# Predictions
+# Display Predictions
 st.subheader("⚽ Predicted Match Outcome")
 st.write(f"🏠 **{home_team}** {fthg} - {ftag} **{away_team}** ✈️")
 st.write(f"📊 **Predicted Result:** {predicted_result}")
-
-st.sidebar.header("📊 Adjust Match Conditions")
-
-# Adjust home & away team strength
-home_advantage = st.sidebar.slider("🏠 Home Advantage (Boost Goals)", 0, 3, 0)
-away_advantage = st.sidebar.slider("✈️ Away Advantage (Boost Goals)", 0, 3, 0)
-
-# Update goal predictions
-adjusted_fthg = fthg + home_advantage
-adjusted_ftag = ftag + away_advantage
-st.sidebar.write(f"🔹 Adjusted Score: {home_team} {adjusted_fthg} - {adjusted_ftag} {away_team}")
-
-
-fig, ax = plt.subplots()
-ax.bar(["Home Goals", "Away Goals"], [fthg, ftag], color=["blue", "red"])
-ax.set_title("⚽ Predicted Goals")
-ax.set_ylabel("Goals")
-
-st.pyplot(fig)
