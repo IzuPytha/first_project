@@ -17,7 +17,7 @@ DEFAULT_CSV = "live.csv"  # Ensure this file is in the same directory as app.py
 
 
 st.write("View predictions of English Premier League Football Matches")
-API_KEY = 'd14cbc5708f2447386403de43228ca03'
+API_KEY = "d14cbc5708f2447386403de43228ca03"
 API_URL = "https://api.football-data.org/v4/matches"
 
 # Fetch live match data
