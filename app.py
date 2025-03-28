@@ -100,7 +100,6 @@ for col in missing_cols:
 
 # Remove extra columns
 match_data = match_data[model_features]
-match_data = match_data.astype(float)
 # Convert to DMatrix and predict
 dmatrix_match = xgb.DMatrix(match_data, feature_names=model_features)
 goal_predictions = goal_model.predict(dmatrix_match)
