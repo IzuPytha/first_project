@@ -75,10 +75,13 @@ st.sidebar.write(f"✈️ {away_team} Form: {away_stats['Form']} | Goals: {away_
 # Ensure the dataset matches model input features
 model_features = joblib.load("model_features.pkl")  # Store feature names used during training
 
+all_teams = np.unique(list(label_encoder["HomeTeam"].classes_) + [home_team, away_team])
+label_encoder["HomeTeam"].classes_ = all_teams
+label_encoder["AwayTeam"].classes_ = all_teams
 
-# Convert selected teams into encoded values
-home_encoded = label_encoder["HomeTeam"].transform([home_team])[0]
-away_encoded = label_encoder["AwayTeam"].transform([away_team])[0]
+team_mapping = {team: i for i, team in enumerate(label_encoder["HomeTeam"].classes_)}
+home_encoded = team_mapping.get(home_team, -1)  # Default to -1 if unseen
+away_encoded = team_mapping.get(away_team, -1)
 
 match_data = pd.DataFrame({
     "HomeTeam": [home_encoded],
