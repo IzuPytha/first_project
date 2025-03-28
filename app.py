@@ -69,9 +69,6 @@ st.sidebar.write(f"🏠 {home_team} Form: {home_stats['Form']} | Goals: {home_st
 st.sidebar.write(f"✈️ {away_team} Form: {away_stats['Form']} | Goals: {away_stats['GoalsPerMatch']}")
 
 
-
-# Identify categorical columns
-
 # Ensure the dataset matches model input features
 model_features = joblib.load("model_features.pkl")  # Store feature names used during training
 
@@ -90,7 +87,20 @@ match_data = pd.DataFrame({
     "ATFormPtsStr": [away_stats["Form"]],
     "Year": [2025]
 })
+for col in ["HomeTeam", "AwayTeam"]:  
+    if col in match_data.columns:
+        match_data[col] = match_data[col].astype("category").cat.codes
 
+missing_cols = set(model_features) - set(match_data.columns)
+extra_cols = set(match_data.columns) - set(model_features)
+
+# Fix missing columns by adding them with default values (e.g., 0)
+for col in missing_cols:
+    match_data[col] = 0  # Default value, change if needed
+
+# Remove extra columns
+match_data = match_data[model_features]
+match_data = match_data.astype(float)
 # Convert to DMatrix and predict
 dmatrix_match = xgb.DMatrix(match_data, feature_names=model_features)
 goal_predictions = goal_model.predict(dmatrix_match)
