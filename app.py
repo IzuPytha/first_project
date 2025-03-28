@@ -71,28 +71,9 @@ st.sidebar.write(f"✈️ {away_team} Form: {away_stats['Form']} | Goals: {away_
 
 
 # Identify categorical columns
-categorical_columns = data.select_dtypes(exclude=["number"]).columns.tolist()
-
-    # Apply Label Encoding (Ensuring 1D input)
-for col, encoder in label_encoder.items():
-    if col in data.columns:
-        data[col] = data[col].apply(lambda x: encoder.transform([x])[0] if x in encoder.classes_ else -1)
 
 # Ensure the dataset matches model input features
 model_features = joblib.load("model_features.pkl")  # Store feature names used during training
-for col in model_features:
-    if col not in data:
-        data[col] = 0  # Add missing columns with default values
-
-data = data[model_features]  # Align feature order
-data = data.apply(pd.to_numeric, errors="coerce")
-feature_names = list(data.columns)  
-
-
-# Make predictions
-dmatrix_data = xgb.DMatrix(data, feature_names=model_features)
-goal_predictions = goal_model.predict(dmatrix_data)
-result_predictions = result_model.predict(dmatrix_data)
 
 
 # Convert selected teams into encoded values
