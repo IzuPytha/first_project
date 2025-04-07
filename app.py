@@ -5,6 +5,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import xgboost as xgb
+from bs4 import BeautifulSoup
+import time
 # Load the trained model and encoder
 goal_model = joblib.load("goal_predictions.pkl")
 result_model = joblib.load("result_predictions.pkl")
@@ -17,56 +19,74 @@ DEFAULT_CSV = "live.csv"  # Ensure this file is in the same directory as app.py
 
 
 st.write("View predictions of English Premier League Football Matches")
-API_KEY = "d8462708faa894faee68ffddf3ab31f2"
-API_URL = "https://v3.football.api-sports.io/"
+def scrape_season(season: str):
+    all_matches = []
+    global team_form
+    team_form = {}
 
-# Fetch live match data
-def get_live_matches():
-    headers = {"X-Auth-Token": API_KEY}
-    response = requests.get(API_URL, headers=headers)
-    
-    if response.status_code == 200:
-        matches = response.json().get("matches", [])
-        match_list = [
-            {"HomeTeam": match["homeTeam"]["name"], "AwayTeam": match["awayTeam"]["name"]}
-            for match in matches
-        ]
-        return match_list
-    else:
-        st.error("⚠️ Unable to fetch match data.")
-        return []
+    for matchday in range(1, 39):
+        print(f"Scraping {season} - Matchday {matchday}...")
+        url = f"https://www.worldfootball.net/schedule/eng-premier-league-{season}-spieltag/{matchday}/"
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = requests.get(url, headers=headers)
+        soup = BeautifulSoup(response.text, "html.parser")
+        table = soup.find("table", {"class": "standard_tabelle"})
+        if not table:
+            continue
 
-# Fetch upcoming matches
-matches = get_live_matches()
+        for row in table.find_all("tr")[1:]:
+            cols = row.find_all("td")
+            if len(cols) < 5:
+                continue
 
-# Team selection from live data
-st.sidebar.header("🔍 Select a Live Match")
-if matches:
-    match_selection = st.sidebar.selectbox("Select Match", [f"{m['HomeTeam']} vs {m['AwayTeam']}" for m in matches])
-    home_team, away_team = match_selection.split(" vs ")
-else:
-    home_team, away_team = "Man City", "Arsenal"  # Default teams
+            date = cols[0].text.strip()
+            home = cols[1].text.strip()
+            score = cols[2].text.strip()
+            away = cols[3].text.strip()
 
-st.sidebar.write(f"🏠 **{home_team}** vs **{away_team}** ✈️")
+            # Convert team names
+            home = team_name_mapping.get(home, home)
+            away = team_name_mapping.get(away, away)
 
-def get_team_stats(team_name):
-    team_url = f"https://api.football-data.org/v4/teams?name={team_name}"
-    headers = {"X-Auth-Token": API_KEY}
-    response = requests.get(team_url, headers=headers)
-    
-    if response.status_code == 200:
-        team_data = response.json().get("teams", [{}])[0]
-        return {
-            "Form": team_data.get("lastFiveResults", "WDLWW"),
-            "GoalsPerMatch": team_data.get("averageGoalsPerGame", 1.5)
-        }
-    return {"Form": "WDLDW", "GoalsPerMatch": 1.2}  # Default values
+            if "-" not in score:
+                continue
+            home_goals, away_goals = map(int, score.split("-"))
 
-home_stats = get_team_stats(home_team)
-away_stats = get_team_stats(away_team)
+            match_link = cols[2].find("a")["href"] if cols[2].find("a") else None
+            match_stats = scrape_match_stats(match_link) if match_link else {}
 
-st.sidebar.write(f"🏠 {home_team} Form: {home_stats['Form']} | Goals: {home_stats['GoalsPerMatch']}")
-st.sidebar.write(f"✈️ {away_team} Form: {away_stats['Form']} | Goals: {away_stats['GoalsPerMatch']}")
+            h_form = team_form.get(home, [])[-5:]
+            a_form = team_form.get(away, [])[-5:]
+
+            match_data = {
+                "Season": season,
+                "Matchday": matchday,
+                "Date": date,
+                "HomeTeam": home,
+                "AwayTeam": away,
+                "FTHG": home_goals,
+                "FTAG": away_goals,
+                "HTFormPts": compute_form_points(h_form),
+                "ATFormPts": compute_form_points(a_form),
+                "HTFormPtsStr": "".join(h_form),
+                "ATFormPtsStr": "".join(a_form),
+                "HomeValue": team_to_value.get(home),
+                "AwayValue": team_to_value.get(away)
+            }
+
+            for i in range(5):
+                match_data[f"HM{i+1}"] = h_form[-(i+1)] if len(h_form) >= i+1 else None
+                match_data[f"AM{i+1}"] = a_form[-(i+1)] if len(a_form) >= i+1 else None
+
+            match_data.update(match_stats)
+            all_matches.append(match_data)
+
+            team_form.setdefault(home, []).append(result_letter(home_goals, away_goals))
+            team_form.setdefault(away, []).append(result_letter(away_goals, home_goals))
+
+    return all_matches
+
+
 
 
 # Ensure the dataset matches model input features
@@ -80,13 +100,7 @@ team_mapping = {team: i for i, team in enumerate(label_encoder["HomeTeam"].class
 home_encoded = team_mapping.get(home_team, -1)  # Default to -1 if unseen
 away_encoded = team_mapping.get(away_team, -1)
 
-match_data = pd.DataFrame({
-    "HomeTeam": [home_encoded],
-    "AwayTeam": [away_encoded],
-    "HTFormPtsStr": [home_stats["Form"]],
-    "ATFormPtsStr": [away_stats["Form"]],
-    "Year": [2025]
-})
+
 for col in ["HomeTeam", "AwayTeam"]:  
     if col in match_data.columns:
         match_data[col] = match_data[col].astype("category").cat.codes
