@@ -97,7 +97,7 @@ def predict_match(home, away):
     return int(fthg), int(ftag), result_map[result_pred]
 
 # Streamlit UI
-st.title("\ud83c\udfc0 Real-Time EPL Match Predictions")
+st.title("⚽ Real-Time EPL Match Predictions")
 
 matches = scrape_matchday()
 for match in matches:
